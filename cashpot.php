@@ -1,5 +1,7 @@
 #!/usr/bin/php -q
 <?php
+
+/***** Example Usage *****/
 $options = getopt('d:');
 if(!$options)
 {
@@ -9,15 +11,15 @@ if(!$options)
 try {
 	$date = tokenize_date($options['d']);
 } catch(Exception $e) {
-	die($e->getMessage());
+	die($e->getMessage() . "\n");
 }
 
 try {
 	$raw_html = query_draw_history($date['day'], $date['month'], $date['year']);
 } catch(HTTPException $e) {
-	die($e->getMessage());
+	die($e->getMessage() . "\n");
 } catch(Exception $e) {
-	die($e->getMessage());
+	die($e->getMessage() . "\n");
 }
 
 $draw_data = extract_draw_data($raw_html);
@@ -34,29 +36,37 @@ else
 	$jackpot = $draw_data[4];
 	$winners = $draw_data[5];
 
-
 	print_draw_result($draw_number, $date, $numbers, $multiplier, $jackpot, $winners);
 }
 
+/******************************************************************************/
+
+/**
+ * Tokenize a date
+ * @param a date formatted as YYYY-MM-DD
+ * @return an array containing the date components in a cashpot query format
+ */
 function tokenize_date($date_string)
 {
 	//validate date
 	if(!$date = DateTime::CreateFromFormat('Y-m-d', $date_string))
 	{
-		throw new Exception("Error: Invalid date. Use a valid date with the format yyyy-mm-dd\n");
+		throw new Exception("Error: Invalid date. Use a valid date with the format yyyy-mm-dd");
 	}
 	if(!checkdate($date->format('n'), $date->format('j'), $date->format('Y')))
 	{
-		throw new Exception("Error: The date supplied is not a valid Gregorian date");
+		throw new Exception("Error: The date supplied is not a valid calender date.");
 	}
 
 	return array("day" => $date->format('d'), "month" => $date->format('M'), "year" => $date->format('y'));
 }
 
-/* This function will either return the html from a cashpot query or it will
- * throw an exception.
- * The query expects two digits for the day and year but first three letters
- * of the month name.
+/**
+ * Query past cashpot draws by date.
+ * @param day a two digit representation of the day eg. 09
+ * @param month a three letter representation of the month eg. Jan
+ * @param year a two digit representation of the year eg. 99
+ * @return the raw html from the page returned by querying a past cashpot draw.
  */
 function query_draw_history($day, $month, $year)
 {
@@ -71,7 +81,7 @@ function query_draw_history($day, $month, $year)
 		else
 		{
 			throw new Exception("Request for $url was unsuccessful. A " . 
-				$request->getResponseCode() . " response code was returned.\n");
+				$request->getResponseCode() . " response code was returned.");
 		}
 	}
 	catch(HttpException $e)
@@ -82,9 +92,16 @@ function query_draw_history($day, $month, $year)
 	return $response;
 }
 
+/**
+ * Extract the draw details from raw html (returned by query_draw_history function)
+ * @param html the raw html returned from a query of a past cashpot draw.
+ * @return an empty array if no draw data is found
+ * @return an array containing the draw information extracted from the raw input html
+ */
 function extract_draw_data($html)
 {
-	$pattern = '/;\s*(.*?)</';
+	$pattern = '/;\s*(.*?)</'; 
+	/* this is a hacky regex search. It searches for strings between the ; and > characters */
 	preg_match_all($pattern, $html, $all_matches);
 	$matches = $all_matches[1]; //Get the matches for the subpattern (.*?) only
 	/*
