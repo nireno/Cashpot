@@ -48,12 +48,20 @@ else
  */
 function tokenize_date($date_string)
 {
-	//validate date
+	/*
+	Note that CreateFromFormat will calculate an input (invalid) date of 2011-07-33 
+	to 2011-08-02 so a further checkdate() is performed. CreateFromFormat is run
+	first to ensure the format is correct.
+	*/
 	if(!$date = DateTime::CreateFromFormat('Y-m-d', $date_string))
 	{
 		throw new Exception("Error: Invalid date. Use a valid date with the format yyyy-mm-dd");
 	}
-	if(!checkdate($date->format('n'), $date->format('j'), $date->format('Y')))
+
+	$year = strtok($date_string, '-');
+	$month = strtok('-');
+	$day = strtok('-');
+	if(!checkdate($day, $month, $year))
 	{
 		throw new Exception("Error: The date supplied is not a valid calender date.");
 	}
